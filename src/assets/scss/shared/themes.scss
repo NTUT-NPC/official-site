@@ -1,0 +1,22 @@
+// Themes colors
+$themes-colors: (
+  default-light: (
+    background: #ffffff,
+    text: #222222
+  ),
+  default-dark: (
+    background: #222222,
+    text: #ffffff
+  )
+);
+
+$themes: light, dark;
+
+@each $theme, $colors in $themes-colors {
+  .theme-#{$theme} {
+    @each $property, $value in $colors {
+      --theme-#{$property}-color: #{$value};
+    }
+    transition: all ease-in-out 0.8s;
+  }
+}

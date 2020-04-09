@@ -1,0 +1,90 @@
+#home {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  .scrolling-area {
+    width: 100%;
+    height: 40000px;
+    z-index: 2;
+  }
+
+  .main-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+
+    .svg {
+      width: 100%;
+      height: auto;
+
+      & * {
+        &[fill="#fff"] {
+          fill: var(--svg-color, var(--theme-text-color));
+        }
+        &[stroke="#fff"] {
+          stroke: var(--svg-color, var(--theme-text-color));
+        }
+      }
+    }
+
+    .floating-wrapper {
+      position: relative;
+      .floating-container {
+        position: absolute;
+      }
+    }
+
+    .logo .floating-container {
+      .svg {
+        width: 300px;
+  
+        @include tablet {
+          width: 200px;
+        }
+  
+        @include mobile {
+          width: 110px;
+        }
+        stroke-dashoffset: 10000;
+        stroke-dasharray: 5000;
+        animation: 8s ease-out draw 2s both infinite;
+      }
+    }
+
+    .title .floating-container {
+      text-align: center;
+      width: 300px;
+      .svg {
+        width: 200px;
+        
+        stroke-dashoffset: 10000;
+        stroke-dasharray: 5000;
+        animation: 8s ease-out draw 2s both infinite;
+      }
+
+
+      @include tablet {
+        width: 200px;
+
+        .svg {
+          width: 150px;
+        }
+      }
+
+      @include mobile {
+        width: 110px;
+
+        .svg {
+          width: 70px;
+        }
+      }
+    }
+
+    @keyframes draw {
+      100% {
+        stroke-dashoffset: 0;
+      }
+    }
+  }
+}

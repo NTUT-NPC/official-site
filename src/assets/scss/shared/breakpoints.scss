@@ -1,0 +1,27 @@
+$mobile-max-width: 475px;
+$tablet-max-width: 960px;
+$laptop-max-width: 1264px;
+
+:root {
+  --mobile-max-width: #{$mobile-max-width};
+  --tablet-max-width: #{$tablet-max-width};
+  --laptop-max-width: #{$laptop-max-width};
+}
+
+@mixin mobile {
+  @media screen and (max-width: $mobile-max-width) {
+    @content;
+  }
+}
+
+@mixin tablet {
+  @media screen and (max-width: $tablet-max-width) {
+    @content;
+  }
+}
+
+@mixin laptop {
+  @media screen and (max-width: $laptop-max-width) {
+    @content;
+  }
+}

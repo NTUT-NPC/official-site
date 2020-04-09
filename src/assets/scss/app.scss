@@ -1,0 +1,26 @@
+// Shared
+@import './shared/reset';
+@import './shared/font';
+@import './shared/colors';
+@import './shared/themes';
+@import './shared/breakpoints';
+@import './shared/container';
+// Components
+// Pages
+@import './pages/home';
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+#app {
+  height: 100%;
+  background-color: var(--theme-background-color);
+  color: var(--theme-text-color);
+  overflow: auto;
+}
