@@ -89,6 +89,7 @@ export default class Home extends Vue {
     })
     return {
       // transition: `all linear ${this.scrollingTransitionTime}ms`,
+      '--svg-color': `hsl(${result.svgColorHue}turn, 50%, 50%)`,
       opacity: result.opacity,
       transform: `translateX(${result[translateXKey]}%) translateY(calc(-50% - ${result.translateY}px)) translateZ(0) rotate(${result.rotate}turn) scale(${result.scale})`
     }

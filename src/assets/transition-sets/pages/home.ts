@@ -5,7 +5,7 @@ const transitionPackSet: TransitionPackSet = {
       {
         percentage: {
           from: 0,
-          to: 0.5
+          to: 1
         },
         transitionValueSet: {
           scale: {
@@ -37,7 +37,7 @@ const transitionPackSet: TransitionPackSet = {
       {
         percentage: {
           from: 0,
-          to: 0.5
+          to: 1
         },
         transitionValueSet: {
           scale: {
@@ -51,6 +51,10 @@ const transitionPackSet: TransitionPackSet = {
           translateY: {
             from: 0,
             to: 0
+          },
+          svgColorHue: {
+            from: 0,
+            to: 1
           },
           rotate: {
             from: 0,

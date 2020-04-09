@@ -46,9 +46,9 @@
         @include mobile {
           width: 110px;
         }
-        stroke-dashoffset: 10000;
-        stroke-dasharray: 5000;
-        animation: 8s ease-out draw 2s both infinite;
+        stroke-dashoffset: 5000;
+        stroke-dasharray: 3000;
+        // animation: 8s ease-out draw 2s both infinite;
       }
     }
 
@@ -57,12 +57,7 @@
       width: 300px;
       .svg {
         width: 200px;
-        
-        stroke-dashoffset: 10000;
-        stroke-dasharray: 5000;
-        animation: 8s ease-out draw 2s both infinite;
       }
-
 
       @include tablet {
         width: 200px;
