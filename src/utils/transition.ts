@@ -17,13 +17,18 @@ interface WithPercentage {
 
 interface Transition extends WithKey, WithValue, WithPercentage {}
 
-interface TransitionValueSet {
+export interface TransitionValueSet {
   [key: string]: Range<number>;
 }
 
 interface TransitionPackStep {
+  isAutoPatched?: boolean;
   percentage: Range<number>;
   transitionValueSet: TransitionValueSet;
+}
+
+interface TransitionPackStepsLine {
+  steps: TransitionPackStep[];
 }
 
 interface TransitionPack {
@@ -89,112 +94,107 @@ function sortSteps (steps: TransitionPackStep[]) {
   })
 }
 
-function diffStepsTransitionValueSetKey (sortedSteps: TransitionPackStep[]) {
-  const objs = sortedSteps.map((step) => step.transitionValueSet)
-  const keyCount: { [key: string]: number } = {}
-  for (const obj of objs) {
-    for (const key of Object.keys(obj)) {
-      keyCount[key] = keyCount[key] || 0
-      keyCount[key] += 1
-    }
-  }
-
-  return Object.entries(keyCount).filter((entry) => entry[1] <= sortedSteps.length).map((entry) => entry[0])
-}
-
-function deepClone<T> (obj: T) {
-  return JSON.parse(JSON.stringify(obj)) as T
-}
-
-function generateStartStep (percentageTo: number): TransitionPackStep {
+function generateNoChangesStep (accordingTo: TransitionPackStep, isPrevious = true): TransitionPackStep {
   return {
     percentage: {
-      from: 0,
-      to: percentageTo
+      from: isPrevious ? 0 : accordingTo.percentage.to,
+      to: isPrevious ? accordingTo.percentage.from : 1
     },
-    transitionValueSet: {}
+    transitionValueSet: Object.fromEntries(
+      Object.entries(accordingTo.transitionValueSet)
+        .map((entry) => {
+          const key = entry[0]
+          const value: Range<number> = {
+            from: entry[1][isPrevious ? 'from' : 'to'],
+            to: entry[1][isPrevious ? 'from' : 'to']
+          }
+          return [key, value]
+        })
+    ),
+    isAutoPatched: true
   }
 }
 
-function patchTransitionValueSetKeysFromNextSteps (options: {
-  previousStep?: TransitionPackStep;
-  currentStep: TransitionPackStep;
-  nextSteps: TransitionPackStep[];
-  diffKeys: string[];
-}) {
-  const { previousStep, currentStep, nextSteps, diffKeys } = options
-  const clonedCurrentStep = deepClone(currentStep)
-  for (const key of diffKeys) {
-    if (clonedCurrentStep.transitionValueSet[key]) continue
-    const nextStep = nextSteps.find((step) => step.transitionValueSet[key])
-    const patchedValue = previousStep?.transitionValueSet[key] || nextStep?.transitionValueSet[key]
-    const isPatchedFromPrevious = !!previousStep?.transitionValueSet[key]
-
-    if (!patchedValue) continue
-    clonedCurrentStep.transitionValueSet[key] = {
-      from: isPatchedFromPrevious ? patchedValue.to : patchedValue.from,
-      to: isPatchedFromPrevious ? patchedValue.to : patchedValue.from
-    }
-  }
-  return clonedCurrentStep
-}
-
-function generateNoChangesTransitionValueSet (originalTransitionValueSet: TransitionValueSet) {
-  return Object.fromEntries(
-    Object.entries(originalTransitionValueSet)
-      .map((entry) => {
-        const key = entry[0]
-        const value: Range<number> = {
-          from: entry[1].to,
-          to: entry[1].to
-        }
-        return [key, value]
-      })
-  )
-}
-
-function fillNoChangesSteps (patchedSteps: TransitionPackStep[]) {
-  const filledSteps: TransitionPackStep[] = []
-  patchedSteps.forEach((step, index, { length }) => {
-    let nextStepPercentageTo: number
-    if (index === length - 1) {
-      nextStepPercentageTo = 1
-    } else {
-      nextStepPercentageTo = patchedSteps[index + 1].percentage.from
-    }
-    filledSteps.push(step)
-    if (step.percentage.to !== nextStepPercentageTo) {
-      const noChangesStep: TransitionPackStep = {
-        percentage: {
-          from: step.percentage.to,
-          to: nextStepPercentageTo
-        },
-        transitionValueSet: generateNoChangesTransitionValueSet(step.transitionValueSet)
-      }
-      filledSteps.push(noChangesStep)
+function expandStepsLines (steps: TransitionPackStep[]) {
+  return steps.map<TransitionPackStepsLine>((step) => {
+    const lineSteps: TransitionPackStep[] = [step]
+    lineSteps.unshift(generateNoChangesStep(step, true))
+    lineSteps.push(generateNoChangesStep(step, false))
+    return {
+      steps: lineSteps
     }
   })
-  return filledSteps
+}
+
+function getAllTransitionPercentagePointsFromStepLines (lines: TransitionPackStepsLine[]) {
+  const percentagePoints = new Set<number>()
+  lines.forEach((line) => {
+    line.steps.forEach((step) => {
+      percentagePoints.add(step.percentage.from)
+      percentagePoints.add(step.percentage.to)
+    })
+  })
+  return [...percentagePoints]
+}
+
+function generateEmptySteps (points: number[]) {
+  const emptySteps: TransitionPackStep[] = []
+  for (let i = 0; i < points.length - 1; i++) {
+    const [from, to] = [points[i], points[i + 1]]
+    emptySteps.push({
+      percentage: {
+        from,
+        to
+      },
+      transitionValueSet: {}
+    })
+  }
+  return emptySteps
+}
+
+function mergeStepsLines (lines: TransitionPackStepsLine[]) {
+  const points = getAllTransitionPercentagePointsFromStepLines(lines)
+  const mergedLine: TransitionPackStepsLine = {
+    steps: generateEmptySteps(points)
+  }
+  mergedLine.steps.forEach((step) => {
+    const { from, to } = step.percentage
+    let entries: {
+      key: string;
+      value: Range<number>;
+      isAutoPatched: boolean;
+    }[] = []
+    lines.forEach((line) => {
+      const tempStep = line.steps.find((step) => step.percentage.from <= from && step.percentage.to >= to)
+      if (tempStep) {
+        const tempEntries = Object.entries(tempStep.transitionValueSet).map((entry) => {
+          return {
+            key: entry[0],
+            value: entry[1],
+            isAutoPatched: !!tempStep.isAutoPatched
+          }
+        })
+        entries.push(...tempEntries)
+      }
+    })
+    entries = entries.sort((entryA, entryB) => {
+      if (!entryA.isAutoPatched && entryB.isAutoPatched) return -1
+      else return 0
+    })
+    entries.forEach((entry) => {
+      if (!step.transitionValueSet[entry.key]) {
+        step.transitionValueSet[entry.key] = entry.value
+      }
+    })
+  })
+  return mergedLine
 }
 
 function completeTransitionPackSteps (originalSteps: TransitionPackStep[]) {
-  let steps = sortSteps(originalSteps)
-  const diffKeys = diffStepsTransitionValueSetKey(steps)
-  if (steps[0].percentage.from !== 0) {
-    steps.unshift(generateStartStep(steps[0].percentage.from))
-  }
-
-  steps.forEach((step, index) => {
-    steps[index] = patchTransitionValueSetKeysFromNextSteps({
-      previousStep: steps[index - 1],
-      currentStep: step,
-      nextSteps: steps.slice(index + 1),
-      diffKeys
-    })
-  })
-
-  steps = fillNoChangesSteps(steps)
-
+  const sortedSteps = sortSteps(originalSteps)
+  const lines = expandStepsLines(sortedSteps)
+  const mergedLine = mergeStepsLines(lines)
+  const { steps } = mergedLine
   return steps
 }
 
@@ -213,9 +213,9 @@ function generateTransitionsFromStep (step: TransitionPackStep) {
 export function transferTransitionPackToTransitions (transitionPack: TransitionPack) {
   const steps = completeTransitionPackSteps(transitionPack.steps)
   const transitions: Transition[] = []
-  for (const step of steps) {
+  steps.forEach((step) => {
     transitions.push(...generateTransitionsFromStep(step))
-  }
+  })
   return transitions
 }
 
